@@ -1,0 +1,26 @@
+---
+description: "Set up navigation/UI primitives or install ui-automation kit — clone CursorReactNativeAgents, install kit into app, then begin the correct phase."
+alwaysApply: false
+---
+
+When the user says **Set up navigation**, **Install navigation kit**, **Add a tab bar**, **Add bottom tabs**, **Add a drawer**, **Add a side menu**, **Add navigation**, **Scaffold screens**, **Add a loading screen**, **Add a loading overlay**, **Add toasts**, **Add toast notifications**, or **Add a snackbar**:
+
+## Step 1 — Clone + install (terminal first; ask nothing yet)
+
+```bash
+cd "$(pwd)"
+CACHE="${HOME}/.cache/CursorReactNativeAgents"
+
+if [[ ! -f "$CACHE/ui-automation/install/run-ui-automation-setup.sh" ]]; then
+  git clone --depth 1 https://github.com/codeandtheory/CursorReactNativeAgents.git "$CACHE" \
+    || git clone --depth 1 git@github.com:codeandtheory/CursorReactNativeAgents.git "$CACHE"
+fi
+
+bash "$CACHE/ui-automation/install/run-ui-automation-setup.sh" "$(pwd)"
+```
+
+Then follow `.cursor/skills/ui-automation-kit/SKILL.md` from the correct entry point (or `$HOME/.cache/CursorReactNativeAgents/ui-automation/.cursor/skills/ui-automation-kit/SKILL.md`):
+- Navigation request → **Phase 0**
+- Loading overlay / toast request → **Phase 0-P**
+
+Do not overwrite existing files without explicit user approval.

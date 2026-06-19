@@ -1,0 +1,24 @@
+---
+description: "Set up dependency management or install the dependency-management kit — clone CursorReactNativeAgents, install kit into app, then begin Phase 0."
+alwaysApply: false
+---
+
+When the user says **Set up dependency management**, **Install the dependency-management kit**, **Update dependencies**, **Check for outdated packages**, **Run a security audit**, or **Bump dependencies**:
+
+## Step 1 — Clone + install (terminal first; ask nothing yet)
+
+```bash
+cd "$(pwd)"
+CACHE="${HOME}/.cache/CursorReactNativeAgents"
+
+if [[ ! -f "$CACHE/dependency-management/install/run-dependency-management-setup.sh" ]]; then
+  git clone --depth 1 https://github.com/codeandtheory/CursorReactNativeAgents.git "$CACHE" \
+    || git clone --depth 1 git@github.com:codeandtheory/CursorReactNativeAgents.git "$CACHE"
+fi
+
+bash "$CACHE/dependency-management/install/run-dependency-management-setup.sh" "$(pwd)"
+```
+
+Then follow `.cursor/skills/dependency-management-kit/SKILL.md` from **Phase 0** (or `$HOME/.cache/CursorReactNativeAgents/dependency-management/.cursor/skills/dependency-management-kit/SKILL.md`).
+
+Require a clean working tree, a GitHub remote, and an authenticated `gh` CLI before making changes. Never push to the base branch.

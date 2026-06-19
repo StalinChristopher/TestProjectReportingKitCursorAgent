@@ -1,0 +1,14 @@
+---
+description: "React Native / Expo localization — add languages, dialects, translate strings, set up i18n, configure RTL (i18n and locale files)."
+globs: "src/i18n/**/*,src/locales/**/*,src/translations/**/*,locales/**/*,i18n/**/*"
+alwaysApply: false
+---
+
+When the user asks to **add localization**, **add a language**, **add dialect support**, **translate strings**, **support a new region**, or **set up i18n** in a React Native or Expo app:
+
+1. Read `.cursor/skills/localization-kit/SKILL.md` in the app, or `$HOME/.cache/CursorReactNativeAgents/localization/.cursor/skills/localization-kit/SKILL.md` after cache refresh.
+2. Do **NOT** summarize the plan or confirm you read it — execute immediately.
+3. Begin **Phase 0** per the strict execution rules in that skill.
+
+Do not hand-edit native `.strings`, `.xml`, or `.xliff` files when a JS-side i18n library manages translations.
+Do not alter existing source-language translation entries.

@@ -1,0 +1,15 @@
+---
+description: "React Native dependency management — outdated detection, grouped update PRs, native security audit, assisted major-version migration (manifest and lock files)."
+globs: "package.json,package-lock.json,yarn.lock,pnpm-lock.yaml,bun.lock,bun.lockb,depkit.policy.json"
+alwaysApply: false
+---
+
+When the user asks to **update dependencies**, **check for outdated packages**, **bump dependencies**, **run a security audit**, or **open dependency update PRs** in a React Native or Expo app:
+
+1. Read `.cursor/skills/dependency-management-kit/SKILL.md` in the app, or `$HOME/.cache/CursorReactNativeAgents/dependency-management/.cursor/skills/dependency-management-kit/SKILL.md` after cache refresh.
+2. Do **NOT** summarize the plan or confirm you read it — execute immediately.
+3. Begin **Phase 0** per the strict execution rules in that skill.
+
+Never push to the base branch — every group gets its own branch and PR.
+Never bump `react`/`react-native`/`expo-*` independently of the Expo SDK cohort.
+Never run `audit fix --force`, `--legacy-peer-deps`, or major bumps outside the gated major-migration phase.

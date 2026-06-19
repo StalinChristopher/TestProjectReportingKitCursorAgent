@@ -1,0 +1,24 @@
+---
+description: "Set up linting or install linting kit — clone CursorReactNativeAgents, install kit into app, then begin Phase 0."
+alwaysApply: false
+---
+
+When the user says **Set up linting**, **Install linting kit**, **Add ESLint to the project**, or **Enforce code quality**:
+
+## Step 1 — Clone + install (terminal first; ask nothing yet)
+
+```bash
+cd "$(pwd)"
+CACHE="${HOME}/.cache/CursorReactNativeAgents"
+
+if [[ ! -f "$CACHE/linting/install/run-linting-setup.sh" ]]; then
+  git clone --depth 1 https://github.com/codeandtheory/CursorReactNativeAgents.git "$CACHE" \
+    || git clone --depth 1 git@github.com:codeandtheory/CursorReactNativeAgents.git "$CACHE"
+fi
+
+bash "$CACHE/linting/install/run-linting-setup.sh" "$(pwd)"
+```
+
+Then follow `.cursor/skills/linting-kit/SKILL.md` from **Phase 0** (or `$HOME/.cache/CursorReactNativeAgents/linting/.cursor/skills/linting-kit/SKILL.md`).
+
+Do not disable ESLint rules project-wide without user approval.

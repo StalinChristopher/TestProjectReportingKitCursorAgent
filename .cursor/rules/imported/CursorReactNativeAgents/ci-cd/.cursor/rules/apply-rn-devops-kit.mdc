@@ -1,0 +1,27 @@
+---
+description: >-
+  User said "Apply the RN DevOps kit". Clone CursorReactNativeAgents first,
+  install ci-cd kit, clone template-pipeline-react-native, apply CI kit.
+  Kit refresh is step 1.
+alwaysApply: false
+---
+
+When the user says **Apply the RN DevOps kit** (or **Integrate RN DevOps kit**, or **set up RN CI from the pipeline template**):
+
+## Step 1 — Clone + install (terminal first; ask nothing yet)
+
+```bash
+cd "$(pwd)"
+CACHE="${HOME}/.cache/CursorReactNativeAgents"
+
+if [[ ! -f "$CACHE/ci-cd/install/run-apply-ci-cd.sh" ]]; then
+  git clone --depth 1 https://github.com/codeandtheory/CursorReactNativeAgents.git "$CACHE" \
+    || git clone --depth 1 git@github.com:codeandtheory/CursorReactNativeAgents.git "$CACHE"
+fi
+
+bash "$CACHE/ci-cd/install/run-apply-ci-cd.sh" "$(pwd)"
+```
+
+Then follow `.cursor/skills/ci-cd-kit/SKILL.md` from **Phase 2** (or `$HOME/.cache/CursorReactNativeAgents/ci-cd/.cursor/skills/ci-cd-kit/SKILL.md`).
+
+Do not ask the user for a template URL unless clone fails or they provide `PATH:` / `TEMPLATE_ROOT=`.

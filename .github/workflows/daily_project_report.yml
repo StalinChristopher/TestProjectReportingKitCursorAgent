@@ -1,0 +1,203 @@
+name: Daily Project Report
+
+on:
+  schedule:
+    - cron: "30 3 * * 1-5" # Mon-Fri 9:00 AM IST (03:30 UTC)
+  workflow_dispatch:
+    inputs:
+      project_key:
+        description: "Jira project key (overrides ROVO_TARGET_PROJECT_KEY)"
+        required: false
+        type: string
+      slack_channel:
+        description: "Slack channel including # (overrides ROVO_TARGET_SLACK_CHANNEL)"
+        required: false
+        type: string
+      timezone:
+        description: "IANA timezone, e.g. Asia/Kolkata, America/New_York, UTC (overrides ROVO_REPORT_TIMEZONE)"
+        required: false
+        type: string
+      start_hour:
+        description: "Reporting window start hour, 24h integer 0-23 (overrides ROVO_REPORT_START_HOUR)"
+        required: false
+        type: string
+      end_hour:
+        description: "Reporting window end hour, 24h integer 0-23, must be > start_hour (overrides ROVO_REPORT_END_HOUR)"
+        required: false
+        type: string
+
+jobs:
+  rovo-signal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve and validate inputs
+        id: signal
+        env:
+          INPUT_PROJECT_KEY: ${{ inputs.project_key }}
+          INPUT_SLACK_CHANNEL: ${{ inputs.slack_channel }}
+          INPUT_TIMEZONE: ${{ inputs.timezone }}
+          INPUT_START_HOUR: ${{ inputs.start_hour }}
+          INPUT_END_HOUR: ${{ inputs.end_hour }}
+          VAR_PROJECT_KEY: ${{ vars.ROVO_TARGET_PROJECT_KEY }}
+          VAR_SLACK_CHANNEL: ${{ vars.ROVO_TARGET_SLACK_CHANNEL }}
+          VAR_TIMEZONE: ${{ vars.ROVO_REPORT_TIMEZONE }}
+          VAR_START_HOUR: ${{ vars.ROVO_REPORT_START_HOUR }}
+          VAR_END_HOUR: ${{ vars.ROVO_REPORT_END_HOUR }}
+          VAR_GITHUB_REPO: ${{ vars.ROVO_GITHUB_REPO }}
+          VAR_JIRA_DOMAIN: ${{ vars.ROVO_JIRA_DOMAIN }}
+          DEFAULT_GITHUB_REPO: ${{ github.repository }}
+          ROVO_AUTOMATION_WEBHOOK_URL: ${{ secrets.ROVO_AUTOMATION_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          project_key="${INPUT_PROJECT_KEY:-${VAR_PROJECT_KEY:-}}"
+          slack_channel="${INPUT_SLACK_CHANNEL:-${VAR_SLACK_CHANNEL:-}}"
+          timezone="${INPUT_TIMEZONE:-${VAR_TIMEZONE:-}}"
+          start_hour="${INPUT_START_HOUR:-${VAR_START_HOUR:-}}"
+          end_hour="${INPUT_END_HOUR:-${VAR_END_HOUR:-}}"
+          github_repo="${VAR_GITHUB_REPO:-${DEFAULT_GITHUB_REPO}}"
+          jira_domain="${VAR_JIRA_DOMAIN:-}"
+
+          missing=()
+          [ -z "${project_key}"   ] && missing+=("project_key (workflow_dispatch input or ROVO_TARGET_PROJECT_KEY var)")
+          [ -z "${slack_channel}" ] && missing+=("slack_channel (workflow_dispatch input or ROVO_TARGET_SLACK_CHANNEL var)")
+          [ -z "${timezone}"      ] && missing+=("timezone (workflow_dispatch input or ROVO_REPORT_TIMEZONE var)")
+          [ -z "${start_hour}"    ] && missing+=("start_hour (workflow_dispatch input or ROVO_REPORT_START_HOUR var)")
+          [ -z "${end_hour}"      ] && missing+=("end_hour (workflow_dispatch input or ROVO_REPORT_END_HOUR var)")
+          [ -z "${jira_domain}"   ] && missing+=("jira_domain (ROVO_JIRA_DOMAIN var)")
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required configuration:"
+            for key in "${missing[@]}"; do
+              echo "::error::  - ${key}"
+            done
+            exit 1
+          fi
+
+          if ! [[ "${start_hour}" =~ ^[0-9]+$ ]] || ! [[ "${end_hour}" =~ ^[0-9]+$ ]]; then
+            echo "::error::start_hour and end_hour must be integers (got start_hour='${start_hour}', end_hour='${end_hour}')"
+            exit 1
+          fi
+          if [ "${start_hour}" -lt 0 ] || [ "${start_hour}" -gt 23 ] || [ "${end_hour}" -lt 0 ] || [ "${end_hour}" -gt 23 ]; then
+            echo "::error::start_hour and end_hour must be in [0,23] (got start_hour=${start_hour}, end_hour=${end_hour})"
+            exit 1
+          fi
+          if [ "${start_hour}" -ge "${end_hour}" ]; then
+            echo "::error::start_hour (${start_hour}) must be less than end_hour (${end_hour})"
+            exit 1
+          fi
+
+          {
+            echo "project_key=${project_key}"
+            echo "slack_channel=${slack_channel}"
+            echo "timezone=${timezone}"
+            echo "start_hour=${start_hour}"
+            echo "end_hour=${end_hour}"
+            echo "github_repo=${github_repo}"
+            echo "jira_domain=${jira_domain}"
+            echo "run_time_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "report_date_utc=$(date -u +'%Y-%m-%d')"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ -n "${ROVO_AUTOMATION_WEBHOOK_URL}" ]; then
+            echo "webhook_configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "webhook_configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Signal Atlassian automation webhook
+        uses: actions/github-script@v7
+        env:
+          ROVO_AUTOMATION_WEBHOOK_URL: ${{ secrets.ROVO_AUTOMATION_WEBHOOK_URL }}
+          ROVO_AUTOMATION_WEBHOOK_TOKEN: ${{ secrets.ROVO_AUTOMATION_WEBHOOK_TOKEN }}
+          REPORT_DATE_UTC: ${{ steps.signal.outputs.report_date_utc }}
+          RUN_TIME_UTC: ${{ steps.signal.outputs.run_time_utc }}
+          PROJECT_KEY: ${{ steps.signal.outputs.project_key }}
+          SLACK_CHANNEL: ${{ steps.signal.outputs.slack_channel }}
+          TIMEZONE: ${{ steps.signal.outputs.timezone }}
+          START_HOUR: ${{ steps.signal.outputs.start_hour }}
+          END_HOUR: ${{ steps.signal.outputs.end_hour }}
+          GITHUB_REPO: ${{ steps.signal.outputs.github_repo }}
+          JIRA_DOMAIN: ${{ steps.signal.outputs.jira_domain }}
+        with:
+          script: |
+            const url = process.env.ROVO_AUTOMATION_WEBHOOK_URL;
+            if (!url) {
+              core.info("ROVO_AUTOMATION_WEBHOOK_URL is not configured; skipping webhook signal.");
+              return;
+            }
+
+            const startHour = Number(process.env.START_HOUR);
+            const endHour = Number(process.env.END_HOUR);
+
+            const payload = {
+              report_date: process.env.REPORT_DATE_UTC,
+              run_time_utc: process.env.RUN_TIME_UTC,
+              project_key: process.env.PROJECT_KEY,
+              slack_channel: process.env.SLACK_CHANNEL,
+              github_repo: process.env.GITHUB_REPO,
+              jira_domain: process.env.JIRA_DOMAIN,
+              timezone: process.env.TIMEZONE,
+              start_hour: startHour,
+              end_hour: endHour,
+              request_source: "github_actions_daily_schedule",
+              prompt_hint: `Same-day crisp executive end-of-day status report for Jira project ${process.env.PROJECT_KEY} and Slack channel ${process.env.SLACK_CHANNEL}, window ${startHour}:00-${endHour}:00 ${process.env.TIMEZONE}, suitable for Confluence.`,
+              // Studio webhook parsing is sometimes more reliable with camelCase keys.
+              reportDate: process.env.REPORT_DATE_UTC,
+              runTimeUtc: process.env.RUN_TIME_UTC,
+              projectKey: process.env.PROJECT_KEY,
+              slackChannel: process.env.SLACK_CHANNEL,
+              githubRepo: process.env.GITHUB_REPO,
+              jiraDomain: process.env.JIRA_DOMAIN,
+              startHour,
+              endHour,
+              requestSource: "github_actions_daily_schedule",
+              promptHint: `Same-day crisp executive end-of-day status report for Jira project ${process.env.PROJECT_KEY} and Slack channel ${process.env.SLACK_CHANNEL}, window ${startHour}:00-${endHour}:00 ${process.env.TIMEZONE}, suitable for Confluence.`,
+            };
+
+            core.info(`Payload: ${JSON.stringify(payload)}`);
+
+            const headers = { "Content-Type": "application/json" };
+            if (process.env.ROVO_AUTOMATION_WEBHOOK_TOKEN) {
+              headers["X-Automation-Webhook-Token"] = process.env.ROVO_AUTOMATION_WEBHOOK_TOKEN;
+            } else {
+              core.info("ROVO_AUTOMATION_WEBHOOK_TOKEN not configured; sending webhook without token header.");
+            }
+
+            const response = await fetch(url, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(payload),
+            });
+
+            const responseBody = await response.text();
+            core.info(`Webhook response status: ${response.status}`);
+            core.info(`Webhook response body: ${responseBody || "<empty>"}`);
+
+            if (!response.ok) {
+              core.setFailed(`Webhook failed with status ${response.status}`);
+            }
+
+      - name: Write run summary
+        env:
+          ROVO_WEBHOOK_CONFIGURED: ${{ steps.signal.outputs.webhook_configured }}
+        run: |
+          {
+            echo "## Daily ROVO orchestration"
+            echo ""
+            echo "- Trigger time (UTC): ${{ steps.signal.outputs.run_time_utc }}"
+            echo "- Jira project: ${{ steps.signal.outputs.project_key }}"
+            echo "- Slack channel: ${{ steps.signal.outputs.slack_channel }}"
+            echo "- GitHub repo: ${{ steps.signal.outputs.github_repo }}"
+            echo "- Jira domain: ${{ steps.signal.outputs.jira_domain }}"
+            echo "- Timezone: ${{ steps.signal.outputs.timezone }}"
+            echo "- Window: ${{ steps.signal.outputs.start_hour }}:00 - ${{ steps.signal.outputs.end_hour }}:00"
+            echo "- Webhook configured: ${ROVO_WEBHOOK_CONFIGURED}"
+            echo ""
+            echo "This workflow acts as a scheduler/signal layer."
+            echo "ROVO report generation and distribution are handled in Atlassian automation."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,16 @@
+---
+description: "Context for project reporting files — workflows, reporting config, ROVO docs. Triggered when editing reporting workflow or project-reporting/ directory."
+globs: .github/workflows/*report*,project-reporting/**/*
+alwaysApply: false
+---
+
+When the user edits files matching this rule:
+
+- ROVO-first: GitHub Actions only schedules and signals; Jira + Slack delivery is in Atlassian ROVO automation.
+- Workflow source of truth: [ReportingAgent](https://github.com/codeandtheory/ReportingAgent) template via `template-manifest.json`.
+- Re-run **Set up project reporting** to refresh from latest ReportingAgent `main`.
+- Never commit webhook URLs, tokens, or API keys.
+- GitHub secrets: `ROVO_AUTOMATION_WEBHOOK_URL`, `ROVO_AUTOMATION_WEBHOOK_TOKEN` (optional).
+- GitHub variables: `ROVO_TARGET_PROJECT_KEY`, `ROVO_TARGET_SLACK_CHANNEL`.
+
+For full setup workflow, read `.cursor/skills/project-reporting-kit/SKILL.md`.

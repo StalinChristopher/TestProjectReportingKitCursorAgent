@@ -1,0 +1,14 @@
+---
+description: "React Native linting — ESLint, Prettier, Husky pre-commit hooks, lint-staged (source files under src/)."
+globs: "src/**/*.{ts,tsx,js,jsx},eslint.config.*,.prettierrc*,.lintstagedrc*,.husky/**/*"
+alwaysApply: false
+---
+
+When the user asks to **set up linting**, **add ESLint**, **enforce code style**, **add pre-commit hooks**, or **fix lint errors** in a React Native or Expo app:
+
+1. Read `.cursor/skills/linting-kit/SKILL.md` in the app, or `$HOME/.cache/CursorReactNativeAgents/linting/.cursor/skills/linting-kit/SKILL.md` after cache refresh.
+2. Do **NOT** summarize the plan or confirm you read it — execute immediately.
+3. Begin **Phase 0** per the strict execution rules in that skill.
+
+Do not disable ESLint rules in source code unless there is a documented exception.
+Do not bypass Husky hooks with `--no-verify` unless the user explicitly requests it.

@@ -1,0 +1,23 @@
+---
+description: OpenAPI specs under openapi/ drive RN service-layer codegen — types, services, ApiEndpoints, QueryKeys. CT template only; no ViewModels/Repositories.
+globs: "openapi/**/*.yaml,openapi/**/*.yml,openapi/**/*.json,**/architecture.config.json,**/src/api/endpoints.ts,**/src/query/queryKeys.ts,**/src/services/**/*Service.ts"
+alwaysApply: false
+---
+
+# OpenAPI → service layer
+
+When an OpenAPI spec under **`openapi/<slug>-api.*`** is added or changed, act as **@openapi-service-layer**:
+
+1. Parse spec; infer **slug** from filename (`profile-api.json` → `profile`).
+2. Map operations to service methods using **`operationId`** or verb rules (GET list → `list()`, GET `{id}` → `byId(id)`, GET single → `detail()`).
+3. Write **`src/api/types/<featureDirName>.ts`** (wire-shape interfaces from schemas).
+4. Write **`src/services/<featureDirName>Service.ts`** (object literal; **`get<T>()`** only — no axios).
+5. Patch **`src/api/endpoints.ts`** and **`src/query/queryKeys.ts`** (replace feature block on regen).
+
+**Do not** generate `network/`, `data/`, `viewmodels/`, Repositories, or ViewModels.
+
+Screens use **`useAppQuery(QueryKeys…, () => service.method())`** — not generated OpenAPI clients.
+
+Follow `.cursor/agents/openapi-service-layer.md`.
+
+Write files directly; do not tell the user to run CLI unless blocked.

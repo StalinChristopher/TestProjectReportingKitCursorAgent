@@ -1,0 +1,17 @@
+---
+description: "React Native UI automation — navigation scaffolding (tabs, drawer, stack, top tabs), loading overlays, and toast notifications for React Navigation and Expo Router projects."
+globs: "src/navigation/**/*.{ts,tsx},src/components/**/*.{ts,tsx},src/context/**/*.{ts,tsx},src/hooks/**/*.{ts,tsx},app/_layout.tsx,app/(tabs)/**,app/(drawer)/**,App.tsx,babel.config.*,app.json,app.config.*"
+alwaysApply: false
+---
+
+When the user asks to **set up navigation**, **add a tab bar**, **add a drawer**, **add bottom tabs**, **add a side menu**, **scaffold screens**, **add navigation**, **add a loading screen**, **add a loading overlay**, **add toasts**, **add toast notifications**, or **add a snackbar** in a React Native or Expo app:
+
+1. Read `.cursor/skills/ui-automation-kit/SKILL.md` in the app, or `$HOME/.cache/CursorReactNativeAgents/ui-automation/.cursor/skills/ui-automation-kit/SKILL.md` after cache refresh.
+2. Do **NOT** summarize the plan or confirm you read it — execute immediately.
+3. Detect intent and begin the correct phase:
+   - Navigation request → **Phase 0**
+   - Loading overlay or toast request → **Phase 0-P**
+   - Both → Tier 1 first, then Tier 2
+
+Do not overwrite existing files without asking.
+Do not install packages outside the packages listed in Phase 3 / Phase 3-P of the skill.

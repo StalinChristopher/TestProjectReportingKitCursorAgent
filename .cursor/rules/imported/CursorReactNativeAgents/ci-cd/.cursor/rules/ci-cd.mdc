@@ -1,0 +1,16 @@
+---
+description: >-
+  User is working on RN CI/CD files. Apply or update the RN DevOps kit from
+  template-pipeline-react-native when integrating GitHub Actions, Semgrep,
+  Fastlane, or bootstrap scripts.
+globs: ".github/**/*,.semgrep/**/*,fastlane/**/*,Gemfile,Gemfile.lock"
+alwaysApply: false
+---
+
+When integrating or updating RN CI/CD infrastructure:
+
+1. Run Phase 1 in `.cursor/skills/ci-cd-kit/SKILL.md` (clone `~/.cache/CursorReactNativeAgents` — do not ask the user first).
+2. If skill missing, use `.cursor/rules/apply-rn-devops-kit.mdc` or `$HOME/.cache/CursorReactNativeAgents/ci-cd/.cursor/skills/ci-cd-kit/SKILL.md`.
+3. Resolve `TEMPLATE_ROOT`, then execute `rn-devops-apply-kit` Phases 0–8 (including mandatory Phase 2.5 flavor prune with kit metadata cleanup, and Phase 5.5 when `android-perf` is present).
+
+Never overwrite `src/` unless the user explicitly asks.

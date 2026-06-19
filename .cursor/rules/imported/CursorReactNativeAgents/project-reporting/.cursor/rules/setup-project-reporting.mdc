@@ -1,0 +1,24 @@
+---
+description: User said "Set up project reporting". Clone CursorReactNativeAgents first, install project-reporting kit, clone ReportingAgent template, apply reporting workflow and docs. Kit refresh is step 1.
+alwaysApply: false
+---
+
+When the user says **Set up project reporting** (or **Apply the project reporting kit**, or **Configure daily Jira Slack reports**):
+
+## Step 1 — Clone + install (terminal first; ask nothing yet)
+
+```bash
+cd "$(pwd)"
+CACHE="${HOME}/.cache/CursorReactNativeAgents"
+
+if [[ ! -f "$CACHE/project-reporting/install/run-project-reporting-setup.sh" ]]; then
+  git clone --depth 1 https://github.com/codeandtheory/CursorReactNativeAgents.git "$CACHE" \
+    || git clone --depth 1 git@github.com:codeandtheory/CursorReactNativeAgents.git "$CACHE"
+fi
+
+bash "$CACHE/project-reporting/install/run-project-reporting-setup.sh" "$(pwd)"
+```
+
+Then follow `.cursor/skills/project-reporting-kit/SKILL.md` from **Phase 2** (or `$HOME/.cache/CursorReactNativeAgents/project-reporting/.cursor/skills/project-reporting-kit/SKILL.md`).
+
+Do not ask the user for a template URL unless clone fails or they provide `PATH:` / `TEMPLATE_ROOT=`.
