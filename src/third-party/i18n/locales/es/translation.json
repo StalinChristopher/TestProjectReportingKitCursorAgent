@@ -29,7 +29,7 @@
   },
   "home": {
     "welcomeTitle": "Bienvenido a {{appName}}",
-    "welcomeMessage": "Nos alegra que estés aquí. Explora las demostraciones a continuación para ver la navegación, los modales y el menú lateral en acción, o empieza a construir directamente.",
+    "welcomeMessage": "Nos alegra que estés aquí. Este kit de inicio reúne todo lo que necesitas para crear excelentes experiencias móviles rápidamente. Explora las demostraciones a continuación para ver la navegación, los modales y el menú lateral en acción. Cuando estés listo, empieza a construir tus propias pantallas.",
     "title": "Pila Inicio",
     "caption": "Push, parámetros, pop, replace, salto de pestaña, modales raíz, menú lateral",
     "navigateDetail": "Navegar con parámetros -> Detalle de inicio",

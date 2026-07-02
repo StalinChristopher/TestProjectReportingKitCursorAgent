@@ -29,7 +29,7 @@
   },
   "home": {
     "welcomeTitle": "Welcome to {{appName}}",
-    "welcomeMessage": "We're glad you're here. Explore the demos below to see navigation, modals, and the drawer in action — or jump straight into building.",
+    "welcomeMessage": "We're glad you're here. This starter kit brings together everything you need to build great mobile experiences fast. Explore the demos below to see navigation, modals, and the drawer in action. When you're ready, jump straight into building your own screens.",
     "title": "Home stack",
     "caption": "Push, params, pop, replace, jump to tab, root modals, drawer",
     "navigateDetail": "Navigate with params -> HomeDetail",
