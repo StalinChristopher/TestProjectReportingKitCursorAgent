@@ -1,0 +1,319 @@
+---
+description: Set up both AI Attribution Hooks and Template Code Metrics in this repo. Apply when developer says "Set up CT metrics", "Set up code metrics", "Add AI attribution and template tracking", "Set up code attribution", "Integrate CT metrics", or similar phrases combining both tools.
+globs:
+alwaysApply: false
+---
+
+# CT Code Metrics — Combined Setup
+
+This rule sets up **two complementary tools** in one pass:
+
+1. **AI Attribution Hooks** — snapshots AI output at edit time; stamps every `git commit` with an AI vs human line breakdown per file. Works for both Claude Code and Cursor.
+2. **Template Code Metrics** — a GitHub Action that runs on every push to `main`, computes what percentage of the repo is original template vs custom work, and POSTs the result to a shared DevLake/Grafana dashboard.
+
+## Trigger phrases
+
+Apply this rule when the developer asks anything matching these intents:
+
+- "Set up CT metrics"
+- "Set up code metrics"
+- "Add AI attribution and template tracking"
+- "Set up code attribution"
+- "Integrate CT metrics"
+- "Integrate AI code percentage checker"
+- "Set up AI attribution tracking"
+- "Add AI code percentage tracking"
+- "Install the AI attribution hooks"
+- "Set up template metrics for this repo"
+- "Add template-code tracking"
+- "Onboard this repo to CT metrics"
+
+Do **not** ask for confirmation — execute every step below immediately unless a step explicitly says to ask the user.
+
+**Always set up both `.claude/` and `.cursor/` folders**, regardless of which tool is running this rule.
+
+---
+
+## Phase 1 — AI Attribution Hooks
+
+### Step 1 — Clone the source repo into a temp folder
+
+```bash
+git clone https://github.com/codeandtheory/ct-github-code-metrics.git /tmp/ct-metrics-setup
+```
+
+### Step 2 — Create directories and copy hook files
+
+```bash
+mkdir -p .claude/hooks .cursor/hooks
+cp -r /tmp/ct-metrics-setup/.claude/hooks/. .claude/hooks/
+cp -r /tmp/ct-metrics-setup/.cursor/hooks/. .cursor/hooks/
+```
+
+### Step 3 — Merge hook configuration
+
+**`.claude/settings.json`** — if the file does not exist, copy it directly:
+```bash
+cp /tmp/ct-metrics-setup/.claude/settings.json .claude/settings.json
+```
+If `.claude/settings.json` already exists, merge the `hooks` array from the source into the existing file without overwriting any keys the project already has.
+
+**`.cursor/hooks.json`** — same logic: copy if absent, merge the `hooks` array if present:
+```bash
+cp /tmp/ct-metrics-setup/.cursor/hooks.json .cursor/hooks.json
+```
+
+### Step 4 — Update `.gitignore`
+
+Append these two lines to `.gitignore` if they are not already present:
+
+```
+.claude/ai_snapshots/
+.cursor/ai_snapshots/
+```
+
+### Step 5 — Clean up temp folder
+
+```bash
+rm -rf /tmp/ct-metrics-setup
+```
+
+---
+
+## Phase 2 — Template Code Metrics
+
+### Step 6 — Detect project type and pick `extra_excludes`
+
+Inspect the repo to identify its language/framework. Look for these markers:
+
+- **React Native / Expo**: `app.json` + `app.config.ts` or `metro.config.js` or `ios/Podfile` AND `package.json` containing `react-native`
+- **Native iOS**: `*.xcodeproj` or `*.xcworkspace` and no React Native deps
+- **Native Android**: `build.gradle`(.kts) at root, no RN deps
+- **Python**: `pyproject.toml`, `setup.py`, or `requirements.txt`
+- **Go**: `go.mod`
+- **Rust**: `Cargo.toml`
+- **Java / Kotlin (non-Android)**: `pom.xml` or `build.gradle` outside `android/`
+- **Node / TS (non-RN)**: `package.json` without `react-native` deps
+- **Unknown**: ask the user
+
+Map the detected type to `extra_excludes`:
+
+| Type | `extra_excludes` value |
+|---|---|
+| React Native | `[":!**/*.xcconfig.local", ":!ios/.bundle/**"]` |
+| Native iOS | `[":!Carthage/**", ":!**/*.xcuserstate", ":!fastlane/report.xml", ":!fastlane/test_output/**"]` |
+| Native Android | `[":!**/build/**", ":!**/captures/**", ":!**/proguard/**", ":!local.properties"]` |
+| Python | `[":!**/migrations/**", ":!staticfiles/**", ":!**/__generated__/**", ":!**/*.pyi"]` |
+| Go | `[":!**/*.pb.go", ":!**/*_generated.go", ":!**/zz_generated_*.go", ":!**/mock_*.go"]` |
+| Rust / Java / Node / Other | `[]` |
+
+### Step 7 — Pick a baseline commit
+
+Ask the user one focused question:
+
+> What baseline commit should this tracker compare against? Options: (a) **root commit** of this repo; (b) **a tagged release** like v1.0.0; (c) **a specific SHA**.
+
+- For (a): `git rev-list --max-parents=0 HEAD` → use first line of output
+- For (b): `git rev-list -n 1 <tag>`
+- For (c): use the SHA the user provides
+
+Validate the SHA is reachable from HEAD with `git cat-file -e <sha>`. If invalid, ask again.
+
+### Step 8 — Offer semantic scoring (opt-in)
+
+Ask the user one focused yes/no question:
+
+> "Enable Claude-judged **semantic** scoring alongside the deterministic git-diff score?
+> - Adds a `template_pct_semantic` value that ignores Prettier reformats, renames, comment edits, and similar cosmetic changes.
+> - Costs ~1¢ per commit using `claude-haiku-4-5-20251001`.
+> - Requires an `ANTHROPIC_API_KEY` GitHub Actions secret."
+
+Remember the answer as `SEMANTIC_ENABLED` (true/false).
+
+### Step 9 — Write `.template-provenance.json` at repo root
+
+```json
+{
+  "schema_version": 1,
+  "baseline_commit": "<SHA from step 7>",
+  "extra_excludes": <array from step 6>
+}
+```
+
+If the file already exists, show the user the diff and ask before overwriting.
+
+### Step 10 — Write `.github/workflows/template-metrics.yml`
+
+Create directories as needed. File contents:
+
+```yaml
+name: Template Metrics
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+jobs:
+  measure:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download metrics scripts
+        run: |
+          curl -fsSL \
+            -H "Authorization: token ${{ secrets.CT_METRICS_TOKEN }}" \
+            https://raw.githubusercontent.com/codeandtheory/ct-github-code-metrics/main/core/scripts/template-metrics.mjs \
+            -o template-metrics.mjs
+          curl -fsSL \
+            -H "Authorization: token ${{ secrets.CT_METRICS_TOKEN }}" \
+            https://raw.githubusercontent.com/codeandtheory/ct-github-code-metrics/main/core/scripts/ai-attribution-metrics.mjs \
+            -o ai-attribution-metrics.mjs
+
+      - name: Compute template-vs-custom metrics
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node template-metrics.mjs > metrics.json
+          echo "=== Template Code Metrics ==="
+          jq '{template_pct: .percentages.template_pct, custom_pct: .percentages.custom_pct, total_loc: .counts.current_total_loc}' metrics.json
+
+      - name: Compute AI attribution metrics
+        run: |
+          node ai-attribution-metrics.mjs > ai-attribution.json
+          echo "=== AI Attribution Metrics ==="
+          jq '{ai_pct: .attribution.ai_pct, human_pct: .attribution.human_pct, commits_with_attribution: .attribution.commits_with_attribution, commits_analyzed: .attribution.commits_analyzed}' ai-attribution.json
+
+      - name: Upload metrics artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ct-metrics-${{ github.sha }}
+          path: |
+            metrics.json
+            ai-attribution.json
+          if-no-files-found: error
+
+      - name: Build combined metrics and POST to DevLake
+        env:
+          DEVLAKE_WEBHOOK_URL: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
+          DEVLAKE_BASIC_AUTH: ${{ secrets.DEVLAKE_BASIC_AUTH }}
+        run: |
+          jq -s '.[0] + {ai_attribution: .[1].attribution}' metrics.json ai-attribution.json > combined-metrics.json
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          jq -n \
+            --arg id "$GITHUB_SHA" \
+            --arg sha "$GITHUB_SHA" \
+            --arg ref "${GITHUB_REF_NAME:-main}" \
+            --arg repo "$REPO_URL" \
+            --arg now "$NOW" \
+            --slurpfile m combined-metrics.json \
+            '{
+              id: $id,
+              name: (
+                "metrics: " +
+                ($m[0].percentages.template_pct|tostring) + "% template / " +
+                ($m[0].percentages.custom_pct|tostring) + "% custom" +
+                (if ($m[0].ai_attribution != null and $m[0].ai_attribution.ai_pct != null)
+                 then " | " + ($m[0].ai_attribution.ai_pct|tostring) + "% AI / " + ($m[0].ai_attribution.human_pct|tostring) + "% human"
+                 else "" end)
+              ),
+              displayTitle: ($m[0] | tojson),
+              environment: "PRODUCTION",
+              startedDate: $now,
+              finishedDate: $now,
+              result: "SUCCESS",
+              deploymentCommits: [{
+                repoUrl: $repo,
+                commitSha: $sha,
+                refName: $ref,
+                startedDate: $now,
+                finishedDate: $now,
+                result: "SUCCESS"
+              }]
+            }' > devlake-payload.json
+          if [ -z "$DEVLAKE_WEBHOOK_URL" ] || [ -z "$DEVLAKE_BASIC_AUTH" ]; then
+            echo "DEVLAKE_WEBHOOK_URL or DEVLAKE_BASIC_AUTH not set — skipping POST."
+            exit 0
+          fi
+          curl -fsSL -X POST "$DEVLAKE_WEBHOOK_URL" \
+            -u "$DEVLAKE_BASIC_AUTH" \
+            -H 'Content-Type: application/json' \
+            --data-binary @devlake-payload.json
+          echo "Posted to DevLake successfully."
+```
+
+Note: `ANTHROPIC_API_KEY` is always declared in the env block — when the secret is unset (semantic disabled), the env var is empty and the script skips semantic scoring automatically. AI attribution is read from git commit message history — no additional secrets are needed.
+
+If this file already exists, show the diff and ask before overwriting.
+
+### Step 11 — Print the combined checklist (verbatim)
+
+```
+✓ AI Attribution Hooks installed.
+  Claude Code and Cursor will snapshot AI output on every file edit.
+  Your git commits will be stamped with an AI vs human line breakdown automatically.
+  Requires Git and Python 3 on PATH. Hooks never block commits (all failures exit silently).
+
+✓ Template Code Metrics scaffolded.
+
+✓ AI Attribution CI reporting enabled.
+  Commits stamped by the AI attribution hooks will automatically flow into the
+  DevLake dashboard alongside template metrics. No additional secrets needed.
+
+Still to do:
+  [ ] Set GitHub Actions secret DEVLAKE_WEBHOOK_URL — ask your admin for the value
+  [ ] Set GitHub Actions secret DEVLAKE_BASIC_AUTH — format user:pass (default devlake:merico on stock installs)
+
+  [ ] (Only if you enabled semantic scoring)
+      Set GitHub Actions secret ANTHROPIC_API_KEY — an Anthropic API key with billing enabled
+
+  [ ] Commit and push the new files:
+        git add .template-provenance.json .github/workflows/template-metrics.yml
+        git commit -m "chore: add ct-code-metrics tracking"
+        git push
+
+If you have the gh CLI:
+  gh secret set DEVLAKE_WEBHOOK_URL --body "<paste-from-admin>"
+  gh secret set DEVLAKE_BASIC_AUTH  --body "<paste-from-admin>"
+  gh secret set ANTHROPIC_API_KEY   --body "<paste-your-key>"   # only if semantic enabled
+
+Once secrets are set and you push, this repo will appear in the shared Grafana dashboard.
+
+Reference: https://github.com/codeandtheory/ct-github-code-metrics
+```
+
+---
+
+## Hard rules — do NOT do any of these
+
+- **Don't commit anything.** Create files, print the checklist, let the user review and commit.
+- **Don't run `gh secret set` yourself.** The values come from the admin; print the commands.
+- **Don't modify existing files** other than the scaffolded ones. Hands off `package.json`, build configs, source code.
+- **Don't run `git add`, `git commit`, `git push`** as part of setup.
+- **Don't proceed with an unvalidated baseline SHA.** A non-existent SHA produces silent 100%-template numbers.
+- **Don't leave half-written files** if the user cancels mid-flow. Clean up anything written so far.
+
+## Failure modes to handle
+
+- **Not a git repo**: tell the user this command only works inside a git repo, stop.
+- **No commits yet**: tell the user to make at least one commit first, stop.
+- **User cancels mid-flow**: clean up anything written so far.
+
+## After setup — what the user should expect
+
+**AI Attribution:**
+- Every time Claude Code or Cursor writes a file, a snapshot is saved to `.claude/ai_snapshots/` or `.cursor/ai_snapshots/`
+- On `git commit`, the message is stamped with a breakdown: `AI: 72% | Human: 28%` per file
+- The git hook installs itself the first time an AI session ends after writing files
+
+**Template Metrics:**
+- First workflow run produces metrics visible in the Action's artifacts
+- DevLake stores a row; Grafana's `$repo` dropdown auto-populates within seconds of the first POST
+- Subsequent commits add data points to the time-series panel

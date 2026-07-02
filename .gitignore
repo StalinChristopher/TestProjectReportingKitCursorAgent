@@ -55,3 +55,7 @@ DerivedData
 
 yarn.lock
 .yarn/
+
+# CT metrics — AI attribution snapshots (local only)
+.claude/ai_snapshots/
+.cursor/ai_snapshots/

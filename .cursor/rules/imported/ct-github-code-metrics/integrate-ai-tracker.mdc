@@ -1,0 +1,104 @@
+---
+description: Integrate AI code percentage checker — sets up AI attribution tracking hooks for Claude Code and Cursor. Apply when developer says "Integrate AI code percentage checker", "set up AI attribution", "add AI tracking hooks", or "install AI percentage tracker".
+globs:
+alwaysApply: false
+---
+
+# AI Code Attribution Tracker — Integration Skill
+
+## Trigger phrases
+
+Apply this skill when a developer asks anything matching these intents:
+- "Integrate AI code percentage checker"
+- "Integrate AI code tracker"
+- "Set up AI attribution tracking"
+- "Add AI code percentage tracking"
+- "Install the AI attribution hooks"
+- "Add AI percentage tracker to this project"
+
+Do **not** ask for confirmation — execute every step below immediately.
+
+**Always set up both `.claude/` and `.cursor/` folders**, regardless of which tool is running this skill. A developer may use Claude Code today and Cursor tomorrow — both must be ready from the start.
+
+---
+
+## Setup steps
+
+### Step 1 — Clone the tracker repo into a temp folder
+
+Run the following shell command:
+
+```bash
+git clone https://github.com/codeandtheory/ct-github-code-metrics.git /tmp/ai-tracker-setup
+```
+
+### Step 2 — Copy `.claude/` and `.cursor/` into the current project
+
+Run these commands from the **project root** (the directory the developer has open):
+
+```bash
+cp -r /tmp/ai-tracker-setup/.claude/hooks .claude/
+cp -r /tmp/ai-tracker-setup/.claude/commands .claude/
+cp /tmp/ai-tracker-setup/.claude/settings.json .claude/settings.json
+
+cp -r /tmp/ai-tracker-setup/.cursor/hooks .cursor/
+cp -r /tmp/ai-tracker-setup/.cursor/rules .cursor/
+cp /tmp/ai-tracker-setup/.cursor/hooks.json .cursor/hooks.json
+```
+
+> If `.claude/` or `.cursor/` directories do not exist yet in the project, create them first:
+> ```bash
+> mkdir -p .claude .cursor
+> ```
+
+### Step 3 — Clean up the temp folder
+
+```bash
+rm -rf /tmp/ai-tracker-setup
+```
+
+### Step 4 — Update `.gitignore`
+
+Append these two lines to `.gitignore` if they are not already present:
+
+```
+.claude/ai_snapshots/
+.cursor/ai_snapshots/
+```
+
+---
+
+## After setup — tell the developer
+
+Once all steps are complete, respond with exactly this:
+
+---
+
+**AI Code Attribution Tracker is now set up.**
+
+**How it works:**
+
+Every time Claude Code or Cursor writes or edits a file in this project, a snapshot of that exact AI output is saved automatically. When you run `git commit`, your commit message is stamped with a breakdown like this:
+
+```
+─────────────────────────────────────────
+🤖 AI Attribution Summary (Claude Code)
+─────────────────────────────────────────
+  Overall  →  AI: 72%  |  Human: 28%
+  Generated: 2026-06-29 14:30 UTC
+
+  Per-file breakdown:
+    src/components/Header.tsx
+      [████████░░]  AI 82% (147 lines)  /  Human 18% (32 lines)
+    README.md
+      [░░░░░░░░░░]  AI 0% (0 lines)  /  Human 100% (45 lines)
+─────────────────────────────────────────
+```
+
+**Nothing else to configure.** Use Claude Code or Cursor as normal. The git hook installs itself automatically the first time an AI session ends after writing files.
+
+**Requirements:** Git and Python 3 must be on `PATH`. The attribution hook never blocks commits — all failure paths exit silently.
+
+**Both tools coexist:** If you use both Claude Code and Cursor, you'll get two separate attribution blocks in the commit message — one per tool.
+
+**Grafana integration:** If the `template-metrics.yml` GitHub Actions workflow is also installed in this repo, the AI attribution percentages from commit messages are automatically parsed in CI and reported to the shared Grafana dashboard alongside template metrics — no additional secrets needed.
