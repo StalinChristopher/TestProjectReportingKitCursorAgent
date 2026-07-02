@@ -28,6 +28,8 @@
     "closeDrawer": "closeDrawer()"
   },
   "home": {
+    "welcomeTitle": "Bienvenido a {{appName}}",
+    "welcomeMessage": "Nos alegra que estés aquí. Explora las demostraciones a continuación para ver la navegación, los modales y el menú lateral en acción, o empieza a construir directamente.",
     "title": "Pila Inicio",
     "caption": "Push, parámetros, pop, replace, salto de pestaña, modales raíz, menú lateral",
     "navigateDetail": "Navegar con parámetros -> Detalle de inicio",

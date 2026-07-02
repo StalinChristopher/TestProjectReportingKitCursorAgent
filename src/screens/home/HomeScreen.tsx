@@ -62,6 +62,13 @@ export function HomeScreen({ navigation }: Props) {
       />
       <View style={styles.container}>
         <AppText variant="headingSm" color="text1">
+          {t("home.welcomeTitle", { appName: APP_DISPLAY_NAME })}
+        </AppText>
+        <AppText variant="bodyMd" color="text2">
+          {t("home.welcomeMessage")}
+        </AppText>
+
+        <AppText variant="headingSm" color="text1">
           {t("home.title")}
         </AppText>
         <AppText variant="bodySm" color="text2" style={{ opacity: 0.7 }}>

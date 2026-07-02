@@ -28,6 +28,8 @@
     "closeDrawer": "closeDrawer()"
   },
   "home": {
+    "welcomeTitle": "Welcome to {{appName}}",
+    "welcomeMessage": "We're glad you're here. Explore the demos below to see navigation, modals, and the drawer in action — or jump straight into building.",
     "title": "Home stack",
     "caption": "Push, params, pop, replace, jump to tab, root modals, drawer",
     "navigateDetail": "Navigate with params -> HomeDetail",
